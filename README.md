@@ -8,6 +8,6 @@ The CODE folder contains the scripts used for data analysis. Specifically, DTime
 
 The PROCESSED_DATA folder contains the processed data tables required for the analysis. This includes the input dataframe (hist.Rda) required to run DTime_Sim and Plots_Sim, and mcid_LNv2_QC.rda which contains the metacell ID (mcid), cell type, lentiviral-based cellular barcode sequence (var_seq), and doubling time information pertaining to each single cell RNA profile.
 
-RAW DATA and processed counts table from bulk and single cell RNA sequencing were submitted to GEO. The bulk RNA sequencing files are available through GEO accession number GSE263518 and single cell RNA sequencing files are available through GSE [XXX].
+Processed count matrices from both bulk and scRNAseq can be accessed through Zenodo: https://zenodo.org/records/10978990. Raw sequencing data will be submitted to an appropriate repository and made available upon publication.
 
 FOR REVIEWERS: Encrypted folders can be accessed using a password, which is the first word of the Introduction section of the manuscript.
