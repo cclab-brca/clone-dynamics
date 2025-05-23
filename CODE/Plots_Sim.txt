@@ -1,0 +1,330 @@
+#Final plots for manuscript
+
+
+#####STG139######
+# Step 1: Compute Density Estimates
+# Using Mclust for mixture modeling
+res_STG139 <- Mclust(filtered_dataframes[["STG139"]]$Value, G = 3, modelNames = "V")
+density_res_STG139 <- densityMclust(filtered_dataframes[["STG139"]]$Value)  # Replace with your actual function
+density_values_STG139 <- density_res_STG139$density
+x_values_STG139 <- density_res_STG139$data
+
+dens_orig_STG139 <- density(filtered_dataframes[["STG139"]]$Value)
+dens_simulated <- density(t/rowSums(Exp))
+
+df_mclust_STG139 <- data.frame(x = x_values_STG139, density = density_values_STG139)
+df_orig_STG139 <- data.frame(x = dens_orig_STG139$x, density = dens_orig_STG139$y)
+df_simulated <- data.frame(x = dens_simulated$x, density = dens_simulated$y)  # For the new red line
+
+library(ggplot2)
+pdf("STG139_tumours.pdf", width = 5 / 2.54, height = 3 / 2.54)
+q <-  ggplot() +
+  # Commenting out or removing the next line will remove the blue dashed line
+  # geom_line(data = df_mclust_STG139, aes(x = x, y = density), size = 0.3, linetype = "dashed", color = "blue") +
+  geom_line(data = df_orig_STG139, aes(x = x, y = density), size = 0.3, color = "forestgreen") +
+  geom_line(data = df_simulated, aes(x = x, y = density), size = 0.3, color = "red") +
+  geom_vline(aes(xintercept = 8.3), color = "black", linetype = "solid", size = 0.1) +
+  geom_vline(aes(xintercept = 14.8), color = "black", linetype = "solid", size = 0.1) +
+  scale_x_continuous(breaks = seq(0, 40, by = 10), limits = c(0, 40)) +  # Force x-axis to range from 0 to 40 and set the breaks
+  scale_y_continuous(breaks = seq(0, 0.25, by = 0.1)) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),  # Hide x-axis labels
+    axis.title.y = element_blank(),
+    legend.position = "none",  # This will remove all legends; if you want to keep other legends, this needs to be adjusted.
+    text = element_text(family = "Helvetica", size = 6)
+  )
+
+
+dev.off()
+
+#####HCI010######
+library(Mclust)
+library(ggplot2)
+
+res_HCI010 <- Mclust(filtered_dataframes[["HCI010"]]$Value, G = 2, modelNames = "V")
+density_res_HCI010 <- densityMclust(filtered_dataframes[["HCI010"]]$Value, G = 2, modelNames = "V")
+density_values_HCI010 <- density_res_HCI010$density
+x_values_HCI010 <- density_res_HCI010$data
+
+dens_orig_HCI010 <- density(filtered_dataframes[["HCI010"]]$Value)
+
+#For the new red line (replace t/rowSums(Exp) with actual data)
+dens_simulated_HCI010 <- density(t/rowSums(Exp))
+
+df_mclust_HCI010 <- data.frame(x = x_values_HCI010, density = density_values_HCI010)
+df_orig_HCI010 <- data.frame(x = dens_orig_HCI010$x, density = dens_orig_HCI010$y)
+df_simulated_HCI010 <- data.frame(x = dens_simulated_HCI010$x, density = dens_simulated_HCI010$y)  # For the new red line
+
+pdf("HCI010_tumours.pdf", width = 5 / 2.54, height = 3 / 2.54)
+w <- ggplot() +
+  # Commenting out or removing the next line will remove the blue dashed line
+  # geom_line(data = df_mclust_HCI010, aes(x = x, y = density), size = 0.3, linetype = "dashed", color = "blue") +
+  geom_line(data = df_orig_HCI010, aes(x = x, y = density), size = 0.3, color = "forestgreen") +
+  geom_line(data = df_simulated_HCI010, aes(x = x, y = density), size = 0.3, color = "red") +
+  geom_vline(aes(xintercept = 8.3), color = "black", linetype = "solid", size = 0.1) +
+  geom_vline(aes(xintercept = 14.8), color = "black", linetype = "solid", size = 0.1) +
+  scale_x_continuous(breaks = c(0, 10, 20, 30, 40), limits = c(0, 40)) +  # Explicitly set breaks at 0, 10, 20, 30, 40
+  scale_y_continuous(breaks = seq(0, 0.4, by = 0.2)) +
+  labs(x = "Doubling time (days)", y = NULL) +  # Removed y-axis label here
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "none",  # This will remove all legends; if you want to keep other legends, this needs to be adjusted.
+    text = element_text(family = "Helvetica", size = 6)
+  )
+
+
+
+
+dev.off()
+
+
+
+
+####Plot_paper_final 1A#####
+library(cowplot)
+
+combined_plot <- ggarrange(p, q, w, ncol = 1, align = "v")
+
+pdf("Figure1A.pdf", width = 8,
+    height = 12)
+print(combined_plot)
+dev.off()
+
+tiff("Figure1A.tiff", width = 5, height = 9, units = "cm", res = 600)
+print(combined_plot)
+dev.off()
+
+
+
+
+
+####Creating a data frame  for 3DT with all the mclust values for each individual PDTX model####
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "2" = numeric(length(names(filtered_dataframes))),
+                         "3" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         "Size_2" = integer(length(names(filtered_dataframes))),
+                         "Size_3" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE)
+
+# Loop over the filtered data frames
+for (i in seq_along(names(filtered_dataframes))) {
+  prefix <- names(filtered_dataframes)[i]
+  res <- Mclust(1/filtered_dataframes[[prefix]]$Value, G = 3, modelNames = "V")
+  results_df[i, "Model"] <- prefix
+  # Check if res$parameters$mean is empty
+  if (length(res$parameters$mean) == 0) {
+    results_df[i, 2:4] <- NA_real_
+    results_df[i, 5:7] <- NA_integer_
+  } else {
+    results_df[i, 2:4] <- res$parameters$mean
+    cluster_sizes <- table(summary(res)$classification)
+    results_df[i, 5:7] <- as.integer(cluster_sizes)
+  }
+}
+
+results_df
+
+
+#Plot all the combined results
+
+pdf("3DT1_models.pdf")
+results_df <- results_df[order(results_df$Model), ]
+
+#Loop through each unique model in the data frame
+for(i in 1:nrow(results_df)) {
+  
+  #First Plot: Mclust and density lines
+  res <- Mclust((filtered_dataframes[[results_df$Model[i]]]$Value), G=3, modelNames="V")
+  
+  plot(res, what="density", lty = 2, lwd = 3, col = rgb(1, 1, 1, 0),  # Transparent color
+       xlab = "Doubling time (days)",
+       ylab = "Density",
+       xlim = c(0, 40),
+       ylim = c(0, 0.40),
+       yaxt = "n")
+  axis(side = 2, las = 2)
+  lines(density(filtered_dataframes[[results_df$Model[i]]]$Value), lwd = 2, col="forestgreen")
+  
+  #Add the model name to the top of the first plot
+  title(main = paste("Model:", results_df$Model[i]))  # Fixed current_row$Model to results_df$Model[i]
+  
+  #Second Plot: Simulation based on results_df
+  current_row <- results_df[i, ]
+  pars <- c(1 / current_row$X1, 1 / current_row$X2, 1 / current_row$X3)
+  sizes <- c(current_row$Size_1, current_row$Size_2, current_row$Size_3)
+  
+  #Initialise variables for the simulation
+  X <- data.frame(Cell = paste("C", 1:sum(sizes), sep = ""),
+                  DT = rep(pars, sizes))
+  X$N <- 1
+  TOT <- sum(X$N)
+  cell.max <- 10e7
+  T <- 10000
+  t <- 0
+  Exp <- NULL
+  
+  while (TOT <= cell.max) {
+    t <- t + 1
+    r <- rexp(nrow(X), X$DT)
+    Exp <- cbind(Exp, r)
+    X[, t + 2] <- X[, t + 1] * (2 ^ (r))
+    TOT <- sum(X[, ncol(X)])
+  }
+  
+  lines(density(t/rowSums(Exp)), yaxt = "n", col = "red")
+  axis(side = 2, las = 2)
+  
+  legend("topright", legend = c("Original Data Density", "Simulation Density"),
+         col = c("forestgreen", "red"), lty = c(1, 1), lwd = c(2, 1))
+}
+
+dev.off()
+
+
+#####Two DT plots####
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "2" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         "Size_2" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE)
+
+#Loop over the filtered data frames
+for (i in seq_along(names(filtered_dataframes))) {
+  prefix <- names(filtered_dataframes)[i]
+  res <- Mclust(1/filtered_dataframes[[prefix]]$Value, G = 2, modelNames = "V")
+  results_df[i, "Model"] <- prefix
+  # Check if res$parameters$mean is empty
+  if (length(res$parameters$mean) == 0) {
+    results_df[i, 2:3] <- NA_real_
+    results_df[i, 4:5] <- NA_integer_
+  } else {
+    results_df[i, 2:3] <- res$parameters$mean
+    cluster_sizes <- table(summary(res)$classification)
+    results_df[i, 4:5] <- as.integer(cluster_sizes)
+  }
+}
+
+results_df
+
+
+
+pdf("2DT1_models.pdf")
+results_df <- results_df[order(results_df$Model), ]
+
+#Loop through each unique model in the data frame
+for(i in 1:nrow(results_df)) {
+  
+  #First Plot: Mclust and density lines
+  res <- Mclust((filtered_dataframes[[results_df$Model[i]]]$Value), G=2, modelNames="V")
+  
+  #Calculate densities for original data
+  density_original <- density(filtered_dataframes[[results_df$Model[i]]]$Value)
+  
+  current_row <- results_df[i, ]
+  pars <- c(1 / current_row$X1, 1 / current_row$X2)
+  sizes <- c(current_row$Size_1, current_row$Size_2)
+  
+  #Initialise variables for the simulation
+  X <- data.frame(Cell = paste("C", 1:sum(sizes), sep = ""),
+                  DT = rep(pars, sizes))
+  X$N <- 1
+  TOT <- sum(X$N)
+  cell.max <- 10e7
+  T <- 10000
+  t <- 0
+  Exp <- NULL
+  
+  while (TOT <= cell.max) {
+    t <- t + 1
+    r <- rexp(nrow(X), X$DT)
+    Exp <- cbind(Exp, r)
+    X[, t + 2] <- X[, t + 1] * (2 ^ (r))
+    TOT <- sum(X[, ncol(X)])
+  }
+  
+  #Calculate density for simulated data
+  density_simulated <- density(t/rowSums(Exp))
+  
+  #Plot density from Mclust with dynamic y-limit
+  plot(res, what="density", lty = 2, lwd = 3, col = rgb(1, 1, 1, 0),  # Transparent color
+       xlab = "Doubling time (days)",
+       ylab = "Density",
+       yaxt = "n", 
+       ylim = c(0, 0.7),
+       xlim = c(0, 40),
+       main = "")
+  
+  title(main = paste("Model:", current_row$Model))
+  
+  axis(side = 2, las = 2)
+  
+  lines(density_original, lwd = 2, col="forestgreen")
+  
+  lines(density_simulated, col = "red")
+  
+  legend("topright", legend = c("Original Data Density", "Simulation Density"),
+         col = c("forestgreen", "red"), lty = c(1, 1), lwd = c(2, 1))
+}
+
+dev.off()
+
+#####One DT plots ####
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE)
+
+#Loop over the filtered data frames
+for (i in seq_along(names(filtered_dataframes))) {
+  prefix <- names(filtered_dataframes)[i]
+  res <- Mclust(1/filtered_dataframes[[prefix]]$Value, G = 1, modelNames = "V")
+  results_df[i, "Model"] <- prefix
+  # Check if res$parameters$mean is empty
+  if (length(res$parameters$mean) == 0) {
+    results_df[i, 2] <- NA_real_
+    results_df[i, 3] <- NA_integer_
+  } else {
+    results_df[i, 2] <- res$parameters$mean
+    cluster_sizes <- table(summary(res)$classification)
+    results_df[i, 3] <- as.integer(cluster_sizes[1]) # Only store size of cluster 1
+  }
+}
+
+results_df
+
+pdf("1DT1_models.pdf")
+
+#Sort results data frame by Model
+results_df <- results_df[order(results_df$Model), ]
+
+#Loop through each unique model in the data frame
+for(i in 1:nrow(results_df)) {
+  # Calculate densities for original data
+  density_original <- density(filtered_dataframes[[results_df$Model[i]]]$Value)
+  
+  plot(density_original, 
+       main = paste("Experimental data density for Model:", results_df$Model[i]),  # Set the title to "Model: [ModelName]"
+       xlab = "Doubling time (days)",
+       ylab = "Density",
+       xlim = c(0, 40), 
+       ylim = c(0, max(density_original$y)), 
+       col = "forestgreen",
+       lwd = 2)
+  
+  legend("topright", legend = c("Experimental Data Density"),
+         col = c("forestgreen"), lty = 1, lwd = 2)
+}
+
+dev.off()

@@ -1,0 +1,182 @@
+#Prepare data for simulations
+
+x_df <- data.frame(Clone = names(x), Value = x)
+prefixes <- c("AB559","AB630", "AB863T2", "CAM2004T2", "HCI004", "NKI250", "STG139", "STG139M", "STG316", "STG321", "VHIO124", "AB521T2", "HCI001", "HCI010", "NKI127", "NKI336", "STG201", "VHIO093", "AB040", "AB580", "HCI009", "STG195", "STG143", "STG335", "IC07", "AB551", "AB892T1")
+
+iltered_dataframes <- list()
+
+for (prefix in prefixes) {
+  filtered_dataframes[[prefix]] <- x_df[grepl(paste0("^", prefix), x_df$Clone), ]
+}
+
+model_names <- names(filtered_dataframes)
+
+#Create plot of the density models and run Mclust for each unique prefix
+pdf("density_mclust_raw_data.pdf")
+for (prefix in names(filtered_dataframes)) {
+  values <- filtered_dataframes[[prefix]]$Value
+  res <- Mclust(values, G = 3, modelNames = "V")
+  plot(res, what = "density", lty = 2, lwd = 3, col = "blue",
+       xlab = "Doubling time (days)", ylab = "Density", yaxt = "n")
+  lines(density(values), lwd = 2, col = "forestgreen")
+  axis(side = 2, las = 2)
+  title(main = prefix)
+  if (prefix != names(filtered_dataframes)[length(names(filtered_dataframes))]) {
+    par(mar = c(5, 4, 4, 2) + 0.1)
+  }
+}
+
+dev.off()
+
+Density Plot and Mixture Model Fitting
+
+#Creating density plots for each model and fitting mixture models on the transformed value of 1/value for each model.
+
+for (prefix in names(filtered_dataframes)) {
+  transformed_value <- data.frame(val = 1 / filtered_dataframes[[prefix]]$Value)
+  res <- Mclust(transformed_value, G = 3, modelNames = "V")
+  plot(density(filtered_dataframes[[prefix]]$Value), lwd = 2, col = "forestgreen",
+       xlab = "Doubling time (days)", ylab = "Density",
+       main = prefix)
+}
+
+
+#Model parameters
+
+#Retrieving the mixture model parameters for each model and storing them into a dataframe.
+
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "2" = numeric(length(names(filtered_dataframes))),
+                         "3" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         "Size_2" = integer(length(names(filtered_dataframes))),
+                         "Size_3" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE) 
+
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "2" = numeric(length(names(filtered_dataframes))),
+                         "3" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         "Size_2" = integer(length(names(filtered_dataframes))),
+                         "Size_3" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE) 
+
+#Loop over the filtered data frames
+for (i in seq_along(names(filtered_dataframes))) {
+  prefix <- names(filtered_dataframes)[i]
+  res <- Mclust(1 / filtered_dataframes[[prefix]]$Value, G = 3, modelNames = "V")
+  results_df[i, "Model"] = prefix
+  if (length(res$parameters$mean) == 0) {
+    results_df[i, 2:4] <- NA_real_
+    results_df[i, 5:7] <- NA_integer_
+  } else {
+    results_df[i, 2:4] <- res$parameters$mean
+    cluster_sizes <- table(summary(res)$classification)
+    results_df[i, 5:7] <- as.integer(cluster_sizes)
+  }
+}
+
+#Model parameters
+
+#Retrieving the mixture model parameters for each model and storing them into a dataframe.
+
+#Initialise empty data frame to store results
+results_df <- data.frame(Model = character(length(names(filtered_dataframes))),
+                         "1" = numeric(length(names(filtered_dataframes))),
+                         "2" = numeric(length(names(filtered_dataframes))),
+                         "3" = numeric(length(names(filtered_dataframes))),
+                         "Size_1" = integer(length(names(filtered_dataframes))),
+                         "Size_2" = integer(length(names(filtered_dataframes))),
+                         "Size_3" = integer(length(names(filtered_dataframes))),
+                         stringsAsFactors = FALSE) 
+
+#Loop over the filtered data frames
+for (i in seq_along(names(filtered_dataframes))) {
+  prefix <- names(filtered_dataframes)[i]
+  res <- Mclust((1 / (filtered_dataframes[[prefix]]$Value)), G = 3, modelNames = "V")
+  results_df[i, "Model"] = prefix
+  if (length(res$parameters$mean) == 0) {
+    results_df[i, 2:4] <- NA_real_
+    results_df[i, 5:7] <- NA_integer_
+  } else {
+    results_df[i, 2:4] <- res$parameters$mean
+    cluster_sizes <- table(summary(res)$classification)
+    results_df[i, 5:7] <- as.integer(cluster_sizes)
+  }
+}
+
+
+#Simulating the growth of cells using the mixture model parameters for each model.
+
+pdf("mclust_plots.pdf")
+
+#Loop over the unique models
+for (model in unique(results_df$Model)) {
+  model_row <- results_df[results_df$Model == model, ]
+  DT <- c(model_row$X1, model_row$X2, model_row$X3)
+  pop_sizes <- c(model_row$Size_1, model_row$Size_2, model_row$Size_3)
+  
+  #Generate simulated data
+  X <- data.frame(Cell = paste("C", 1:sum(pop_sizes), sep = ""),
+                  DT = rep(DT, times = pop_sizes))
+  X$N <- 1
+  TOT <- sum(X$N)
+  cell.max <- 10e10
+  t <- 0
+  
+  while (TOT <= cell.max) {
+    t <- t + 1
+    X[, t + 2] <- X[, t + 1] * (2 ^ (rexp(nrow(X), X$DT)))
+    TOT <- sum(apply(X[, -c(1, 2), drop = F], 1, sum))
+  }
+  DobT <- log10(X[, ncol(X)])/log10(2)
+  plot(density((ncol(X)-2)/DobT), 
+       main = paste0("Model: ", model), 
+       xlab = "Log2 of Doubling Time")
+}
+
+dev.off()
+
+
+Comparison of Simulated and Observed Data
+
+#Finally, we compare the density distribution of the observed data and the simulated data for each model.
+
+pdf("mclustd_plots.pdf")
+
+#Loop over the unique models
+for (model in unique(results_df$Model)) {
+  #Get the row in results_df corresponding to the current model
+  model_row <- results_df[results_df$Model == model, ]
+  
+  #Extract values for DT and population sizes
+  DT <- c(model_row$X1, model_row$X2, model_row$X3)
+  pop_sizes <- c(model_row$Size_1, model_row$Size_2, model_row$Size_3)
+  
+  #Generate simulated data
+  X <- data.frame(Cell = paste("C", 1:sum(pop_sizes), sep = ""),
+                  DT = rep(DT, times = pop_sizes))
+  X$N <- 1
+  TOT <- sum(X$N)
+  cell.max <- 10e10
+  t <- 0
+  
+  while (TOT <= cell.max) {
+    t <- t + 1
+    X[, t + 2] <- X[, t + 1] * (2 ^ (rexp(nrow(X), X$DT)))
+    TOT <- sum(apply(X[, -c(1, 2), drop = F], 1, sum))
+  }
+  DobT <- log10(X[, ncol(X)])/log10(2)
+  plot(density((ncol(X)-2)/DobT), 
+       main = paste0("Model: ", model), 
+       xlab = "Log2 of Doubling Time",
+       col = "blue")
+  
+  lines(density(filtered_dataframes[[model]]$Value), col = "red")
+}
+
+dev.off()
